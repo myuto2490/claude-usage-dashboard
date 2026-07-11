@@ -37,7 +37,7 @@ LOCAL_ONLY = os.environ.get("AI_USAGE_LOCAL_ONLY", "").strip().lower() in ("1", 
 BIND_HOST = "127.0.0.1" if LOCAL_ONLY else "0.0.0.0"
 
 APP_TITLE = "Claude Code 使用状況ダッシュボード"
-APP_VERSION = "1.0.0"   # 公開リポジトリのタグ (vX.Y.Z) と揃える
+APP_VERSION = "1.0.1"   # 公開リポジトリのタグ (vX.Y.Z) と揃える
 
 
 def _flag(name, default=False):
@@ -1259,9 +1259,6 @@ INDEX_HTML = r"""<!doctype html>
   .g-warn{color:var(--warn)} .bg-warn{background:var(--warn)} .tk-warn{background:rgba(255,159,10,.22)}
   .g-crit{color:var(--crit)} .bg-crit{background:var(--crit)} .tk-crit{background:rgba(255,69,58,.22)}
   .gauge .meta{display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--muted)}
-  .scoped{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-  .scoped .s{background:var(--panel);border-radius:12px;padding:9px 13px;font-size:12px;min-width:150px;flex:1}
-  .scoped .s b{font-size:16px;font-weight:600;letter-spacing:-.01em}
   .stalebadge{font-size:11px;color:var(--warn);margin-left:8px}
   .heat{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;background:var(--panel);border-radius:14px;padding:12px}
   .heat .cell{aspect-ratio:1;border-radius:4px;position:relative}
@@ -1494,21 +1491,15 @@ function render(p){
     if(L.warn) h += `<div class="stalebadge" style="display:block;margin-bottom:8px">⚠ ${L.warn}</div>`;
     h += `<div class="limits">`
        + limGauge("セッション（5時間枠）", L.five_hour)
-       + limGauge("週間（全体）", L.seven_day)
-       + limGauge("週間 Opus", L.seven_day_opus)
-       + limGauge("週間 Sonnet", L.seven_day_sonnet)
-       + `</div>`;
-    const scoped = (L.limits||[]).filter(x => x.kind==="weekly_scoped" || (x.group==="weekly" && x.model));
-    if(scoped.length){
-      h += `<div class="scoped">`;
-      for(const s of scoped){
-        const rem = s.remaining; const cls = sevClass(rem);
-        h += `<div class="s"><div class="muted">週間${s.model?("・"+s.model):""}</div>`
-           + `<b class="g-${cls}">${rem!=null?rem+"%":"-"}</b> <span class="muted">残り</span>`
-           + `<div class="muted" style="margin-top:2px">リセット ${countdown(s.resets_at)}</div></div>`;
-      }
-      h += `</div>`;
+       + limGauge("週間（全体）", L.seven_day);
+    // モデル別の週間枠 (Fable 等) は limits 配列から実在するものだけを
+    // 同じゲージ形式で表示する
+    for(const s of (L.limits||[]).filter(x => x.kind==="weekly_scoped" || (x.group==="weekly" && x.model))){
+      if(s.percent == null) continue;
+      h += limGauge(`週間 ${esc(s.model||"")}`,
+                    {utilization: s.percent, remaining: s.remaining, resets_at: s.resets_at});
     }
+    h += `</div>`;
     h += `<div class="note">Anthropic 利用状況APIの実値。${L.fetched_at?("最終取得 "+L.fetched_at):""}（約60秒間隔でキャッシュ／429回避のため低頻度ポーリング）</div>`;
   }
   h += `<div class="note">USD/JPY ${Number(p.usd_jpy||0).toFixed(2)}（${rate.source||"unknown"}${rate.fallback?" / fallback":""}、1日1回更新）${rate.warn?` <span class="stalebadge">${rate.warn}</span>`:""}</div>`;
