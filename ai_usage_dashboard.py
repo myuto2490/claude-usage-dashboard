@@ -37,6 +37,7 @@ LOCAL_ONLY = os.environ.get("AI_USAGE_LOCAL_ONLY", "").strip().lower() in ("1", 
 BIND_HOST = "127.0.0.1" if LOCAL_ONLY else "0.0.0.0"
 
 APP_TITLE = "Claude Code 使用状況ダッシュボード"
+APP_VERSION = "1.0.0"   # 公開リポジトリのタグ (vX.Y.Z) と揃える
 
 
 def _flag(name, default=False):
@@ -732,6 +733,7 @@ def build_payload():
     calendar = update_history(claude["by_date"], usd_jpy["rate"])
     return {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        "app_version": APP_VERSION,
         "usd_jpy": usd_jpy["rate"],
         "usd_jpy_meta": usd_jpy,
         "limits": limits,
@@ -991,7 +993,7 @@ async function tick(){
     setWin("wk", L.available ? L.seven_day : null);
     document.getElementById("td").textContent = yen((c.today.cost||0)*rate);
     document.getElementById("tt").textContent = yen(monthTotalYen(p));
-    document.getElementById("ttm").textContent = ` · ${new Date().getMonth()+1}月`;
+    document.getElementById("ttm").textContent = ` · ${new Date().toLocaleString("en-US",{month:"short"})}`;
     document.getElementById("st").textContent = (p.generated_at||"").slice(11);
   }catch(e){
     document.getElementById("err").textContent = "接続不可";
@@ -1208,6 +1210,8 @@ INDEX_HTML = r"""<!doctype html>
     border-bottom:1px solid var(--line);-webkit-app-region:drag;}
   header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:-.01em}
   .sub{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+  .ver{font-size:10.5px;font-weight:600;color:var(--muted);background:var(--fill);
+       border-radius:20px;padding:2px 8px;letter-spacing:.02em}
   .hidebtn{-webkit-app-region:no-drag;margin-left:auto;display:flex;align-items:center;gap:5px;
     border:none;background:var(--fill);color:var(--txt);border-radius:8px;
     padding:6px 12px;font-size:12.5px;font-weight:500;font-family:inherit;cursor:pointer}
@@ -1292,6 +1296,7 @@ INDEX_HTML = r"""<!doctype html>
 <body>
 <header>
   <h1>Claude 使用状況</h1>
+  <span class="ver" id="appver"></span>
   <span class="sub" id="stamp">—</span>
   <button class="hidebtn" id="hideBtn" title="常時表示バーだけを残して閉じる">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M19 13H5v-2h14v2z" fill="currentColor"/></svg>
@@ -1470,6 +1475,7 @@ function miniTable(title, rows, unit){
 function render(p){
   LAST = p;
   document.getElementById("stamp").textContent = (p.generated_at||"").replace("T"," ");
+  document.getElementById("appver").textContent = p.app_version ? "v"+p.app_version : "";
   const c = p.claude;
   const ct = c.totals;
   const jpy = v => "≈¥" + Math.round((v||0)*p.usd_jpy).toLocaleString();

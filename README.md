@@ -1,5 +1,9 @@
 # Claude Usage Dashboard
 
+[![Release](https://img.shields.io/github/v/release/myuto2490/claude-usage-dashboard?label=release)](https://github.com/myuto2490/claude-usage-dashboard/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078d4)
+
 Claude Code の使用量・推定コスト・残量（5時間枠/週間枠）を Windows で常時可視化する非公式ダッシュボード。
 
 > An unofficial Windows dashboard that visualizes your Claude Code token usage, estimated cost, and subscription rate limits (5-hour / weekly) — with an always-on-top mini bar. UI is in Japanese.
@@ -146,6 +150,13 @@ pyinstaller AIUsageDashboard.spec
 - アクセストークン（約8時間で失効）は期限前に自動でリフレッシュし、
   ローテーションされたリフレッシュトークンを原子的に書き戻します
 - UI はローカル HTTP サーバ + WebView2（pywebview）。フレームワーク・外部 CDN 不使用
+
+## バージョン管理
+
+[セマンティックバージョニング](https://semver.org/lang/ja/)（`vメジャー.マイナー.パッチ`）で管理し、
+[Releases](https://github.com/myuto2490/claude-usage-dashboard/releases) にタグを切って公開します。
+現在のバージョンはダッシュボードのヘッダーに `vX.Y.Z` として表示されます
+（ソースでは `ai_usage_dashboard.py` の `APP_VERSION`）。
 
 ## ライセンス
 
