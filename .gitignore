@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# PyInstaller / ビルド成果物
+build/
+dist/
+
+# ローカルの pip キャッシュ
+pip/
+
+# ランタイムキャッシュ
+.ai_usage_dashboard/
+app_icon_preview.png
