@@ -4,6 +4,8 @@ Claude Code の使用量・推定コスト・残量（5時間枠/週間枠）を
 
 > An unofficial Windows dashboard that visualizes your Claude Code token usage, estimated cost, and subscription rate limits (5-hour / weekly) — with an always-on-top mini bar. UI is in Japanese.
 
+![Claude Usage Dashboard — 常時表示バーと利用上限ゲージ・日別コストカレンダー（数値はデモ用）](docs/hero.png)
+
 ローカルに保存された Claude Code のログ（`~/.claude`）を読み取り、Anthropic の利用状況 API から**アカウント全体の残量の実値**を取得して 1 画面に表示します。追加の API キーは不要で、Python 標準ライブラリだけで動作します。
 
 ---
