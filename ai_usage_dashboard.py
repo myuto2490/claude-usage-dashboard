@@ -37,7 +37,7 @@ LOCAL_ONLY = os.environ.get("AI_USAGE_LOCAL_ONLY", "").strip().lower() in ("1", 
 BIND_HOST = "127.0.0.1" if LOCAL_ONLY else "0.0.0.0"
 
 APP_TITLE = "Claude Code 使用状況ダッシュボード"
-APP_VERSION = "1.0.1"   # 公開リポジトリのタグ (vX.Y.Z) と揃える
+APP_VERSION = "1.0.2"   # 公開リポジトリのタグ (vX.Y.Z) と揃える
 
 
 def _flag(name, default=False):
@@ -119,18 +119,24 @@ def parse_ts(value):
 
 
 # ---------------------------------------------------------------------------
-# 為替 (USD/JPY) — 1日1回取得しキャッシュ
+# 為替 (USD/JPY) — 成功したら1日1回キャッシュ。失敗時は一定間隔で再試行する
+# (起動時にオフラインだった場合などに、その日ずっと古い値のままにならないように)
 # ---------------------------------------------------------------------------
+RATE_RETRY = int(os.environ.get("AI_USAGE_USDJPY_RETRY", "900"))  # 失敗時の再試行間隔(秒)
 _rate_lock = threading.Lock()
-_rate_state = {"data": None}
+_rate_state = {"data": None, "retry_at": 0.0}
 
 
 def get_usd_jpy():
     today = datetime.date.today().isoformat()
+    now = time.monotonic()
     with _rate_lock:
         cached_state = _rate_state.get("data")
         if cached_state and cached_state.get("date") == today:
-            return cached_state
+            # 成功値はその日いっぱい使う。失敗値 (fallback) は再試行時刻まで
+            # だけ使い、過ぎたら取り直す
+            if not cached_state.get("fallback") or now < _rate_state["retry_at"]:
+                return cached_state
 
     cached = None
     try:
@@ -171,17 +177,20 @@ def get_usd_jpy():
         except Exception as e:
             result["warn"] = f"為替キャッシュ保存に失敗: {e}"
     except Exception as e:
+        retry_min = RATE_RETRY // 60
         if cached and cached.get("rate"):
             result = dict(cached)
             result["cache_date"] = result.get("date")
             result["date"] = today
             result["fallback"] = True
-            result["warn"] = f"為替の更新に失敗したためキャッシュを使用: {e}"
+            result["warn"] = f"為替の更新に失敗したためキャッシュを使用 ({retry_min}分後に再試行): {e}"
         else:
-            result["warn"] = f"為替の更新に失敗したため環境変数/既定値を使用: {e}"
+            result["warn"] = f"為替の更新に失敗したため環境変数/既定値を使用 ({retry_min}分後に再試行): {e}"
 
     with _rate_lock:
         _rate_state["data"] = result
+        if result.get("fallback"):
+            _rate_state["retry_at"] = time.monotonic() + RATE_RETRY
     return result
 
 

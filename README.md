@@ -137,6 +137,7 @@ pyinstaller AIUsageDashboard.spec
 | `AI_USAGE_NO_CONFIRM_CLOSE` | – | `1` で（バー無し構成時の）終了確認を無効化 |
 | `AI_USAGE_NO_WINDOW` | – | `1` でウィンドウを開かずサーバのみ起動 |
 | `AI_USAGE_USDJPY` | `160` | 為替取得失敗時のフォールバック USD/JPY |
+| `AI_USAGE_USDJPY_RETRY` | `900` | 為替取得に失敗したときの再試行間隔（秒） |
 | `AI_USAGE_WEB_SEARCH_COST` | `10.0` | Web検索の単価（USD / 1000リクエスト） |
 | `AI_USAGE_LIMITS_TTL` | `60` | 残量の再取得間隔（秒） |
 | `AI_USAGE_CLAUDE_UA` | `claude-code/2.0.1` | 残量取得時の User-Agent |
