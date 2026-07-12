@@ -138,14 +138,20 @@ pyinstaller AIUsageDashboard.spec
 | `AI_USAGE_NO_WINDOW` | – | `1` でウィンドウを開かずサーバのみ起動 |
 | `AI_USAGE_USDJPY` | `160` | 為替取得失敗時のフォールバック USD/JPY |
 | `AI_USAGE_USDJPY_RETRY` | `900` | 為替取得に失敗したときの再試行間隔（秒） |
+| `AI_USAGE_PRICING_URL` | LiteLLM の単価表 | モデル単価の取得元 URL |
+| `AI_USAGE_PRICING_RETRY` | `3600` | 単価取得に失敗したときの再試行間隔（秒） |
 | `AI_USAGE_WEB_SEARCH_COST` | `10.0` | Web検索の単価（USD / 1000リクエスト） |
 | `AI_USAGE_LIMITS_TTL` | `60` | 残量の再取得間隔（秒） |
 | `AI_USAGE_CLAUDE_UA` | `claude-code/2.0.1` | 残量取得時の User-Agent |
+| `AI_USAGE_LOGFILE` | – | 指定したパスに起動ログを追記（トラブルシュート用） |
 
 ## 仕組み（概要）
 
 - 集計はすべてローカルで行い、Claude Code が書き出す JSONL の `usage` フィールド
   （入出力・キャッシュ書込 5分/1時間 TTL・キャッシュ読込）を公開単価で金額換算します
+- モデル単価は機械可読な公開単価表 ([LiteLLM](https://github.com/BerriAI/litellm) の
+  `model_prices_and_context_window.json`) から**毎日自動取得**するため、値下げ・改定にも
+  自動で追従します。取得できない間は内蔵の概算表にフォールバックします
 - 残量は Anthropic の利用状況エンドポイントから取得する**アカウント全体の実値**です
   （429 回避のため約60秒間隔でキャッシュ）
 - アクセストークン（約8時間で失効）は期限前に自動でリフレッシュし、
