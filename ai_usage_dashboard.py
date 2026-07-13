@@ -38,7 +38,7 @@ LOCAL_ONLY = os.environ.get("AI_USAGE_LOCAL_ONLY", "").strip().lower() in ("1", 
 BIND_HOST = "127.0.0.1" if LOCAL_ONLY else "0.0.0.0"
 
 APP_TITLE = "Claude Code 使用状況ダッシュボード"
-APP_VERSION = "1.1.0"   # 公開リポジトリのタグ (vX.Y.Z) と揃える
+APP_VERSION = "1.1.1"   # 公開リポジトリのタグ (vX.Y.Z) と揃える
 
 
 def _flag(name, default=False):
@@ -1742,24 +1742,40 @@ def _icon_path():
     return path if os.path.isfile(path) else None
 
 
+# 起動直後 (シングルスレッド) に先読みした .NET 型。実行中に pythonnet の
+# import を行うと、HTTP ハンドラ等の他スレッドと重なった際に CLR の初期化/
+# インポートがデッドロックすることがある (実測) ため、import は起動時のみ。
+_dotnet = {"Icon": None}
+
+
+def _preload_dotnet():
+    """System.Drawing.Icon をシングルスレッド段階で先読みする。"""
+    try:
+        import clr  # noqa: F401  (pythonnet — CLR 初期化もここで済む)
+        clr.AddReference("System.Drawing")
+        from System.Drawing import Icon
+        _dotnet["Icon"] = Icon
+        _log("main: .NET 型の先読み完了")
+    except Exception as e:
+        _log(f"main: .NET 型の先読みに失敗 ({e}) — ウィンドウアイコンは既定のまま")
+
+
 def _apply_window_icon(window, tries=40):
     """ウィンドウ/タスクバーのアイコンを差し替える (winforms: native は WinForms Form)。
 
     shown イベント内で Icon を設定すると複数ウィンドウ構成でデッドロックするため
-    使わない (webview.start(icon=...) も同様)。さらに、この pythonnet 呼び出しと
-    バー生成 (別スレッド) が同時に走ると .NET 相互運用が約50%でデッドロックする
-    ことを分離テストで確認済み。必ず _on_ready 内で同期的に (バー生成より先に)
-    呼ぶこと。
+    使わない (webview.start(icon=...) も同様)。Icon 型は _preload_dotnet で
+    先読みしたものだけを使い、ここでは import しない。
     """
+    icon_cls = _dotnet.get("Icon")
     path = _icon_path()
-    if not path:
+    if icon_cls is None or not path:
         return
     for _ in range(tries):
         try:
             form = getattr(window, "native", None)
             if form is not None:
-                from System.Drawing import Icon  # pythonnet 経由
-                form.Icon = Icon(path)
+                form.Icon = icon_cls(path)
                 return
         except Exception:
             pass
@@ -2099,6 +2115,8 @@ def main():
         except Exception as e:
             gui = None
             _log(f"main: pywebview を読み込めません ({e})。ブラウザ表示に切替")
+        if gui is not None:
+            _preload_dotnet()  # 実行中の pythonnet import を無くす (デッドロック根絶)
 
     try:
         server = _ExclusiveHTTPServer((BIND_HOST, PORT), Handler)
